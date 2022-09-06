@@ -14,6 +14,14 @@
 #include <limits.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <string.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <arpa/inet.h>
+
 //--//////////////////////////////////////////////////////////////////////////
 //--    local declarations          ///{{{1///////////////////////////////////
 void print_usage(const char *aProgramName);
@@ -48,14 +56,49 @@ int main(int aArgc, char *aArgv[])
     if (-1 == gethostname(localHostName, kHostNameMaxLength))
     {
         if (errno == ENAMETOOLONG)
-            printf("error %d: len is smaller than the actual size!", errno);
+            fprintf(stderr, "error %d: len is smaller than the actual size!", errno);
         if (errno == EFAULT)
-            printf("error %d: name is an invalid address.", errno);
+            fprintf(stderr, "error %d: name is an invalid address.", errno);
         return 1;
     }
     // Print the initial message
     printf("Resolving `%s' from `%s':\n", remoteHostName, localHostName);
-    // TODO : add your code here
+
+    // set hints for getaddrinfo
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(struct addrinfo)); // fill memory with a constant byte
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;     /* For wildcard IP address */
+    hints.ai_protocol = IPPROTO_TCP; /* won’t get “duplicate” IPv4 addresses */
+    hints.ai_canonname = NULL;
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
+
+    struct addrinfo *result;
+
+    int res;
+    res = getaddrinfo(remoteHostName, NULL, &hints, &result);
+
+    // show errors
+    if (res != 0)
+    {
+        fprintf(stderr, "Error: %s\n", gai_strerror(res)); // human-readable
+        return 1;
+    }
+
+    // IPv4 addresses
+    struct sockaddr_in *addr;
+    addr = (sockaddr_in *)result->ai_addr;
+    printf("%s has address IPv4 %s\n", remoteHostName, inet_ntoa((in_addr)addr->sin_addr));
+
+    // IPv6 addresses
+    char buf[INET6_ADDRSTRLEN];
+    struct sockaddr_in6 *addrip6;
+    addrip6 = (sockaddr_in6 *)result->ai_next;
+    printf("%s has address IPv6 %s\n", remoteHostName, inet_ntop(AF_INET6, &addrip6->sin6_addr, buf, INET6_ADDRSTRLEN));
+
+    freeaddrinfo(result);
     // Ok, we're done. Return success.
     return 0;
 }

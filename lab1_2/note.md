@@ -7,6 +7,7 @@ Exercise I.a.2
 - the last byte for EOF so in c we allways need to plus one if we dont want to count EOF.  
 
 Exercise I.a.3 ??
+one of the parameters for send is connfd (that is called the connected descriptor) after handshake is complete it changed to connection id. so send methon use that id for connection after that SIGPIPE (is a synchronous signal that’s sent to a process) control the connection and by using MSG_NOSIGNAL flag (in linux) it not going to generate a SIGPIPE signal if the peer on a stream-oriented socket has closed the connection.
 
 Exercise I.a.4
   - some time just there is a error on sending message like size of meessage (EMSGSIZE) so the client can try again so ther is no reasion  to terminate connection

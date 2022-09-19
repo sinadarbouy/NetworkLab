@@ -36,6 +36,11 @@
 //--//////////////////////////////////////////////////////////////////////////
 //--    configurables       ///{{{1///////////////////////////////////////////
 
+// maximum VALUE of all tracked file descriptors
+#ifndef FD_SETSIZE
+#define FD_SETSIZE sysconf(_SC_OPEN_MAX)
+#endif
+
 // Set VERBOSE to 1 to print additional, non-essential information.
 #define VERBOSE 1
 
@@ -169,7 +174,6 @@ int main(int argc, char *argv[])
 	connections.empty(); // <-- will return (bool) true
 	connections.size();	 // <-- will return (size_t) 0
 
-	ConnectionData connData;
 	// loop forever
 	while (1)
 	{
@@ -191,19 +195,23 @@ int main(int argc, char *argv[])
 		{
 			printf("Connection %zu: in state %d and has socket %d\n",
 				   i, connections[i].state, connections[i].sock);
+
+			int _state = connections[i].state;
 			// if valid socket descriptor then add to read list
-			if (connections[i].state == eConnStateReceiving)
+			if (_state == 0)
+			{
 				FD_SET(connections[i].sock, &readfds);
-			else if (connections[i].state == eConnStateSending)
+			}
+			else if (_state == 1)
+			{
 				FD_SET(connections[i].sock, &writefds);
+			}
 		}
 		// wait for an event using select()
 		// NOTE 1: we only need one call to select() throughout our program.
 		// NOTE 2: pay attention to the first arguement of select. It should be the
 		// maximum VALUE of all tracked file descriptors + 1.
-		int nfds = listenfd + 1;
-		int ret = select(nfds, &readfds, &writefds, 0, 0);
-		printf("  select result ------------------------------------- %d \n", ret);
+		int ret = select(FD_SETSIZE + 1, &readfds, &writefds, 0, 0);
 
 		if (-1 == ret)
 		{

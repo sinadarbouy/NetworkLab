@@ -198,11 +198,11 @@ int main(int argc, char *argv[])
 
 			int _state = connections[i].state;
 			// if valid socket descriptor then add to read list
-			if (_state == 0)
+			if (_state == 0 && !is_invalid_connection(connections[i]))
 			{
 				FD_SET(connections[i].sock, &readfds);
 			}
-			else if (_state == 1)
+			else if (_state == 1 && !is_invalid_connection(connections[i]))
 			{
 				FD_SET(connections[i].sock, &writefds);
 			}
@@ -277,6 +277,7 @@ int main(int argc, char *argv[])
 				{
 					close(connections[i].sock);
 					FD_CLR(connections[i].sock, &readfds);
+					connections[i].sock = -1;
 				}
 			}
 			else if (FD_ISSET(connections[i].sock, &writefds))
@@ -286,6 +287,7 @@ int main(int argc, char *argv[])
 				{
 					close(connections[i].sock);
 					FD_CLR(connections[i].sock, &writefds);
+					connections[i].sock = -1;
 				}
 			}
 		}
